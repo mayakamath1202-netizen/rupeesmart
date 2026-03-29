@@ -593,6 +593,9 @@
       <div class="nav-item" onclick="switchView('reports')">
         <span class="nav-icon">📑</span> Reports
       </div>
+      <div class="nav-item" onclick="switchView('settings')">
+        <span class="nav-icon">⚙️</span> Settings
+      </div>
     </div>
     <div class="sidebar-footer">
       <div class="user-chip">
@@ -820,6 +823,57 @@
       </div>
     </div>
 
+    <!-- ── SETTINGS ── -->
+    <div id="view-settings" class="view">
+      <div class="page-header">
+        <h1>Settings ⚙️</h1>
+        <p>Set your monthly income and savings goal</p>
+      </div>
+      <div style="max-width:520px">
+        <div class="card">
+          <div class="card-title">💰 Financial Settings</div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label>Monthly Income (₹)</label>
+              <input type="number" id="set-income" placeholder="e.g. 35000" min="0"/>
+              <div style="font-size:12px;color:var(--muted2);margin-top:4px">This is used to calculate remaining balance and savings rate</div>
+            </div>
+            <div class="form-group full">
+              <label>Monthly Savings Goal (₹)</label>
+              <input type="number" id="set-goal" placeholder="e.g. 5000" min="0"/>
+              <div style="font-size:12px;color:var(--muted2);margin-top:4px">How much you want to save every month</div>
+            </div>
+          </div>
+
+          <!-- Current values display -->
+          <div style="background:var(--surface2);border-radius:12px;padding:16px;margin:20px 0;display:flex;gap:20px">
+            <div style="flex:1;text-align:center">
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Current Income</div>
+              <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--accent)" id="currentIncome">₹0</div>
+            </div>
+            <div style="width:1px;background:var(--border)"></div>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Savings Goal</div>
+              <div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--accent2)" id="currentGoal">₹0</div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+
+        <!-- Info card -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">ℹ️ How This Works</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.8">
+            <div>📊 <strong style="color:var(--text)">Remaining</strong> = Income − Total Expenses</div>
+            <div>💎 <strong style="color:var(--text)">Savings Goal</strong> = Target amount to save per month</div>
+            <div>🏥 <strong style="color:var(--text)">Health Score</strong> = Calculated from your savings rate</div>
+            <div>📈 <strong style="color:var(--text)">AI Insights</strong> = Based on income vs spending ratio</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -908,30 +962,10 @@ function showAuthError(el, msg) {
 // DATA STORE
 // ────────────────────────────────────────────────
 let expenses = JSON.parse(localStorage.getItem('se_expenses') || '[]');
-const INCOME = 35000;
-const SAVINGS_GOAL = 5000;
+let INCOME       = parseInt(localStorage.getItem('rs_income') || '35000');
+let SAVINGS_GOAL = parseInt(localStorage.getItem('rs_goal')   || '5000');
 
-// Seed sample data if empty
-if (!expenses.length) {
-  const now = new Date();
-  const m = now.getMonth(), y = now.getFullYear();
-  const seed = [
-    { amount:250,  category:'Food',          desc:'Zomato biryani',       date: new Date(y,m,2).toISOString().slice(0,10),  payment:'UPI' },
-    { amount:1200, category:'Shopping',      desc:'Amazon headphones',    date: new Date(y,m,3).toISOString().slice(0,10),  payment:'Card' },
-    { amount:180,  category:'Travel',        desc:'Uber to office',       date: new Date(y,m,5).toISOString().slice(0,10),  payment:'UPI' },
-    { amount:8500, category:'Rent',          desc:'Monthly house rent',   date: new Date(y,m,1).toISOString().slice(0,10),  payment:'UPI' },
-    { amount:399,  category:'Entertainment', desc:'Netflix subscription', date: new Date(y,m,6).toISOString().slice(0,10),  payment:'Card' },
-    { amount:320,  category:'Food',          desc:'Swiggy pizza',         date: new Date(y,m,8).toISOString().slice(0,10),  payment:'UPI' },
-    { amount:550,  category:'Health',        desc:'Apollo pharmacy',      date: new Date(y,m,9).toISOString().slice(0,10),  payment:'Cash' },
-    { amount:750,  category:'Shopping',      desc:'Myntra clothes',       date: new Date(y,m,11).toISOString().slice(0,10), payment:'Card' },
-    { amount:90,   category:'Travel',        desc:'Auto rickshaw',        date: new Date(y,m,12).toISOString().slice(0,10), payment:'Cash' },
-    { amount:180,  category:'Food',          desc:'Dominos pizza',        date: new Date(y,m,14).toISOString().slice(0,10), payment:'UPI' },
-    { amount:2000, category:'Shopping',      desc:'Flipkart sale',        date: new Date(y,m,15).toISOString().slice(0,10), payment:'Card' },
-    { amount:150,  category:'Food',          desc:'Chai and snacks',      date: new Date(y,m,16).toISOString().slice(0,10), payment:'Cash' },
-  ];
-  seed.forEach(s => expenses.push({ ...s, id: Date.now() + Math.random() }));
-  save();
-}
+// No sample data — user adds their own expenses
 
 function save() { localStorage.setItem('se_expenses', JSON.stringify(expenses)); }
 
@@ -948,6 +982,7 @@ function switchView(id) {
   if (id === 'dashboard') renderDashboard();
   if (id === 'expenses') renderExpenses();
   if (id === 'analysis') renderAnalysis();
+  if (id === 'settings') renderSettings();
   if (id === 'reports') renderReports();
 }
 
@@ -1036,6 +1071,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   renderDashboard();
 });
+
+// ────────────────────────────────────────────────
+// SETTINGS
+// ────────────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('set-income').value = INCOME;
+  document.getElementById('set-goal').value   = SAVINGS_GOAL;
+  document.getElementById('currentIncome').textContent = fmt(INCOME);
+  document.getElementById('currentGoal').textContent   = fmt(SAVINGS_GOAL);
+}
+
+function saveSettings() {
+  const income = parseInt(document.getElementById('set-income').value);
+  const goal   = parseInt(document.getElementById('set-goal').value);
+  if (!income || income <= 0) return toast('Please enter a valid income', 'error');
+  if (!goal   || goal   <= 0) return toast('Please enter a valid savings goal', 'error');
+  if (goal >= income)          return toast('Savings goal must be less than income', 'error');
+  INCOME       = income;
+  SAVINGS_GOAL = goal;
+  localStorage.setItem('rs_income', income);
+  localStorage.setItem('rs_goal',   goal);
+  document.getElementById('currentIncome').textContent = fmt(INCOME);
+  document.getElementById('currentGoal').textContent   = fmt(SAVINGS_GOAL);
+  toast('✅ Settings saved!', 'success');
+}
 
 // ────────────────────────────────────────────────
 // DASHBOARD
